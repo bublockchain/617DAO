@@ -7,7 +7,7 @@ import {Deploy617DAO} from "../script/Deploy617DAO.s.sol";
 
 contract DAOTest is Test {
     BUBDAO public dao;
-    address[] memory members = [];
+    address[] members;
 
     function setUp() public {
         Deploy617DAO deploy = new Deploy617DAO();
