@@ -5,6 +5,7 @@ import {BUBDAO} from "./617DAO.sol";
 contract DAOFaucet {
     event Deposit(address sender, uint256 amount);
     event Funding(address sentTo, bytes data);
+    event DrainedFunds();
 
     address private s_owner;
     BUBDAO s_dao;
@@ -16,17 +17,11 @@ contract DAOFaucet {
     error OnlyDAOMembersCanRequestFunds();
     error AlreadyCompletedRequest();
     error FailedTransaction(bytes data);
+    error NoRequestFound();
 
     modifier onlyOwner() {
         if (msg.sender != s_owner) {
             revert Unauthorized_OnlyOwner();
-        }
-        _;
-    }
-
-    modifier openRequest(uint256 _requestID) {
-        if (s_requests[_requestID].completed) {
-            revert AlreadyCompletedRequest();
         }
         _;
     }
@@ -66,21 +61,67 @@ contract DAOFaucet {
 
     //Approve Requests
     function approveRequest(uint256 _requestID) external onlyOwner {
+        if (s_requests[_requestID].requestID == 0) {
+            revert NoRequestFound();
+        }
+
+        if (s_requests[_requestID].completed) {
+            revert AlreadyCompletedRequest();
+        }
         //Move request to closed funding requests
         s_requests[_requestID].completed = true;
         //Remove entry from open requests
+        bool found = false;
+        for (uint i; i < s_openRequestIDs.length - 1; ++i) {
+            if (!found && s_openRequestIDs[i] == _requestID) {
+                found = true;
+            }
+            if (found) {
+                s_openRequestIDs[i] = s_openRequestIDs[i + 1];
+            }
+        }
         //Send Transaction
         (bool success, bytes memory data) = s_requests[_requestID]
             .userAddress
             .call{value: fundAmount}("");
+
         if (!success) {
             revert FailedTransaction(data);
         }
 
         emit Funding(s_requests[_requestID].userAddress, data);
     }
+
     //Send Initial funds
+    function sendFunds(address _to) external onlyOwner {
+        (bool success, bytes memory data) = _to.call{value: fundAmount}("");
+
+        if (!success) {
+            revert FailedTransaction(data);
+        }
+        emit Funding(_to, data);
+    }
+
     //Transfer out all funds
+    function drainContract() external onlyOwner {
+        (bool success, bytes memory data) = s_owner.call{
+            value: address(this).balance
+        }("");
+
+        if (!success) {
+            revert FailedTransaction(data);
+        }
+
+        emit DrainedFunds();
+    }
+
     //Get total funds
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
     //Get active requests
+    function getActiveRequests() external view returns (uint256[] memory) {
+        return s_openRequestIDs;
+    }
 }
