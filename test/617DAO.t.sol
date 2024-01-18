@@ -35,7 +35,7 @@ contract DAOTest is Test {
         dao.addMember(address(0));
     }
 
-    function test_onlyOwner() public {
+    function test_addMember_onlyOwner() public {
         vm.prank(address(0));
         vm.expectRevert(expectedOnlyOwner);
         dao.addMember(address(0));
@@ -49,6 +49,25 @@ contract DAOTest is Test {
         assertEq(dao.s_balance(address(0)), 2);
     }
 
+    function test_addVP_onlyOwner() public {
+        vm.prank(address(0));
+        vm.expectRevert(expectedOnlyOwner);
+        dao.addVP(address(0));
+    }
+
+    //newPresident tests
+    function test_newPresident() public {
+        vm.prank(address(2));
+        dao.newPresident(address(0));
+        assertEq(dao.s_balance(address(0)), 3);
+        assertEq(dao.s_balance(address(2)), 0);
+    }
+
+    function test_newPresident_onlyPresident() public {
+        vm.prank(address(0));
+        vm.expectRevert(expectedOnlyPresident);
+        dao.newPresident(address(1));
+    }
     
 
     function test_addProposals() public {
@@ -125,12 +144,6 @@ contract DAOTest is Test {
         assertEq(dao.s_balance(address(0)), 0);
     }
 
-    function test_newPresident() public {
-        vm.prank(address(2));
-        dao.newPresident(address(0));
-        assertEq(dao.s_balance(address(0)), 3);
-        assertEq(dao.s_balance(address(2)), 0);
-    }
 
     function test_unauthorizedAccess_addMember() public {
         vm.prank(address(3));

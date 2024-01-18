@@ -154,16 +154,15 @@ contract BUBDAO {
 
     // Democracy functions
 
+
+    //Need to rework this segment
     function impeach(address _newPresident) public onlyMember {
         if (
-            s_impeachments[s_openImpeachments[_newPresident]].startTime +
-                7 days <
-            block.timestamp
+            s_impeachments[s_openImpeachments[_newPresident]].startTime + 7 days < block.timestamp
         ) {
             delete s_openImpeachments[_newPresident];
         } else if (s_openImpeachments[_newPresident] != 0) {
-            s_impeachments[s_openImpeachments[_newPresident]]
-                .votes += s_balance[msg.sender];
+            s_impeachments[s_openImpeachments[_newPresident]].votes += s_balance[msg.sender];
         } else {
             s_openImpeachments[_newPresident] = s_impeachments.length;
             s_impeachments.push(
@@ -241,8 +240,8 @@ contract BUBDAO {
                     revert AlreadyCheckedIn();
                 }
             }
-            s_currentMeeting.attendees[s_currentMeeting.attendees.length] = msg
-                .sender;
+
+            s_currentMeeting.attendees[s_currentMeeting.attendees.length] = msg.sender;
         }
 
         //If they have checked in
@@ -255,8 +254,6 @@ contract BUBDAO {
                 s_notYetMembers[msg.sender] = 0;
             }
         }
-
-        s_currentMeeting.attendees.push(msg.sender);
     }
 
     function closeMeeting() public onlyPresident {

@@ -99,6 +99,7 @@ contract DAOFaucet {
         if (!success) {
             revert FailedTransaction(data);
         }
+
         emit Funding(_to, data);
     }
 
