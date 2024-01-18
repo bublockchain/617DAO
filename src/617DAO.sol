@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: CC-BY-1.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 //@title The Boston University Blockchain Club DAO
 //@author Wes Jorgensen, @Wezabis on twtr
 //@notice This contract is a simple DAO for the Boston University Blockchain Club
 
 contract BUBDAO {
-    
     // Set to BUB Wallet Address
     address public s_owner;
     address public s_president;
 
     // Token balances and total tokens
-    mapping (address => uint8) public s_balance;
+    mapping(address => uint8) public s_balance;
     uint public s_totalTokens;
 
     // Constants
@@ -22,11 +21,10 @@ contract BUBDAO {
     uint8 constant MEETINGS_REQUIRED_TO_JOIN = 3;
 
     // Errors
-    error Unauthorized();
-    error UnauthorizedOwner();
-    error UnauthorizedPresident();
-    error UnauthorizedVP();
-    error UnauthorizedMember();
+    error Unauthorized_Only_Owner();
+    error Unauthorized_Only_President();
+    error Unauthorized_Only_VP();
+    error Unauthorized_Only_Member();
     error AlreadyMember();
     error MeetingNotOpen();
     error MeetingIsAlreadyOpen();
@@ -53,9 +51,8 @@ contract BUBDAO {
         uint8 votes;
     }
 
-
     // State variables
-    mapping (address => uint) private s_notYetMembers;
+    mapping(address => uint) private s_notYetMembers;
     mapping(uint => mapping(address => bool)) private s_votes;
     mapping(address => uint) private s_openImpeachments;
     Proposal[] public s_proposals;
@@ -70,29 +67,29 @@ contract BUBDAO {
 
     // Modifiers
     modifier onlyOwner() {
-        if(msg.sender != s_owner){
-            revert UnauthorizedOwner();
+        if (msg.sender != s_owner) {
+            revert Unauthorized_Only_Owner();
         }
         _;
     }
 
     modifier onlyMember() {
-        if(s_balance[msg.sender] == 0){
-            revert UnauthorizedMember();
+        if (s_balance[msg.sender] == 0) {
+            revert Unauthorized_Only_Member();
         }
         _;
     }
 
     modifier onlyVP() {
-        if(s_balance[msg.sender] < VP_TOKENS){
-            revert UnauthorizedVP();
+        if (s_balance[msg.sender] < VP_TOKENS) {
+            revert Unauthorized_Only_VP();
         }
         _;
     }
 
     modifier onlyPresident() {
-        if(msg.sender != s_president){
-            revert UnauthorizedPresident();
+        if (msg.sender != s_president) {
+            revert Unauthorized_Only_President();
         }
         _;
     }
@@ -110,7 +107,7 @@ contract BUBDAO {
 
     //@notice adds members to DAO
     function addMember(address _member) public onlyOwner {
-        if(s_balance[_member] != 0){
+        if (s_balance[_member] != 0) {
             revert AlreadyMember();
         }
         s_balance[_member] = MEMBER_TOKENS;
@@ -119,13 +116,8 @@ contract BUBDAO {
 
     //@notice adds VP to DAO
     function addVP(address _vp) public onlyOwner {
-        if(s_balance[_vp] == 1){
-            s_balance[_vp] = VP_TOKENS;
-            s_totalTokens += VP_TOKENS;
-        }
-        else{
-            revert UnauthorizedOwner();
-        }
+        s_balance[_vp] = VP_TOKENS;
+        s_totalTokens += VP_TOKENS;
     }
 
     //@notice adds President to DAO and removes old president
@@ -163,88 +155,104 @@ contract BUBDAO {
     // Democracy functions
 
     function impeach(address _newPresident) public onlyMember {
-        if(s_impeachments[s_openImpeachments[_newPresident]].startTime + 7 days < block.timestamp){
+        if (
+            s_impeachments[s_openImpeachments[_newPresident]].startTime +
+                7 days <
+            block.timestamp
+        ) {
             delete s_openImpeachments[_newPresident];
-        }
-        else if(s_openImpeachments[_newPresident] != 0){
-            s_impeachments[s_openImpeachments[_newPresident]].votes += s_balance[msg.sender];
-        }
-        else{
+        } else if (s_openImpeachments[_newPresident] != 0) {
+            s_impeachments[s_openImpeachments[_newPresident]]
+                .votes += s_balance[msg.sender];
+        } else {
             s_openImpeachments[_newPresident] = s_impeachments.length;
-            s_impeachments.push(Impeachment(_newPresident, block.timestamp, s_balance[msg.sender]));
+            s_impeachments.push(
+                Impeachment(
+                    _newPresident,
+                    block.timestamp,
+                    s_balance[msg.sender]
+                )
+            );
         }
 
-        if(s_impeachments[s_openImpeachments[_newPresident]].votes > ((s_totalTokens/4)*3)){
+        if (
+            s_impeachments[s_openImpeachments[_newPresident]].votes >
+            ((s_totalTokens / 4) * 3)
+        ) {
             newPresident(_newPresident);
             delete s_openImpeachments[_newPresident];
         }
     }
 
-
     // Proposals and voting
 
-   function addProposal(string calldata _proposal) public onlyMember {
+    function addProposal(string calldata _proposal) public onlyMember {
         s_proposals.push(Proposal(_proposal, 0, 0));
         emit NewProposal(_proposal);
     }
 
     //@notice votes on a proposal
     function vote(uint _proposal, bool _vote) public onlyMember {
-        if(s_votes[_proposal][msg.sender] == true){
+        if (s_votes[_proposal][msg.sender] == true) {
             revert AlreadyVoted();
         }
-        
+
         // Adds vote
-        if(_vote){
-            s_proposals[_proposal].votesYa = s_proposals[_proposal].votesYa + s_balance[msg.sender];
-        }
-        else{
-            s_proposals[_proposal].votesNay = s_proposals[_proposal].votesNay + s_balance[msg.sender];
+        if (_vote) {
+            s_proposals[_proposal].votesYa =
+                s_proposals[_proposal].votesYa +
+                s_balance[msg.sender];
+        } else {
+            s_proposals[_proposal].votesNay =
+                s_proposals[_proposal].votesNay +
+                s_balance[msg.sender];
         }
 
         s_votes[_proposal][msg.sender] = true;
-        
+
         // Checks if proposal passed
         if (s_proposals[_proposal].votesYa > s_totalTokens / 2) {
             emit ProposalPassed(s_proposals[_proposal].proposal);
-        }
-        else if(s_proposals[_proposal].votesNay > s_totalTokens / 2) {
+        } else if (s_proposals[_proposal].votesNay > s_totalTokens / 2) {
             emit ProposalFailed(s_proposals[_proposal].proposal);
         }
     }
 
-
     // Meeting functions
 
     function newMeeting(string calldata topic) public onlyPresident {
-        if(s_currentMeeting.open){
+        if (s_currentMeeting.open) {
             revert MeetingIsAlreadyOpen();
         }
-        
+
         address[] memory attendees;
         s_currentMeeting = Meeting(block.timestamp, topic, attendees, true);
     }
 
     function checkIn() public {
-        if(!s_currentMeeting.open){
+        if (!s_currentMeeting.open) {
             revert MeetingNotOpen();
         }
-        
+
         // Parse through current meeting attendees to see if address has already checked in
-        if(s_currentMeeting.attendees.length > 0){
-            for(uint i = 0; i < s_currentMeeting.attendees.length; i++){
-                if(s_currentMeeting.attendees[i] == msg.sender){
+        if (s_currentMeeting.attendees.length > 0) {
+            for (uint i = 0; i < s_currentMeeting.attendees.length; i++) {
+                if (s_currentMeeting.attendees[i] == msg.sender) {
                     revert AlreadyCheckedIn();
                 }
             }
+            s_currentMeeting.attendees[s_currentMeeting.attendees.length] = msg
+                .sender;
         }
 
-        if(s_balance[msg.sender] < 1){
+        //If they have checked in
+        if (s_balance[msg.sender] < 1) {
             s_notYetMembers[msg.sender] += 1;
 
-            if(s_notYetMembers[msg.sender] >= MEETINGS_REQUIRED_TO_JOIN){
-                addMember(msg.sender);
-                delete s_notYetMembers[msg.sender];
+            if (s_notYetMembers[msg.sender] >= MEETINGS_REQUIRED_TO_JOIN) {
+                s_balance[msg.sender] = MEMBER_TOKENS;
+                s_totalTokens += MEMBER_TOKENS;
+                s_notYetMembers[msg.sender] = 0;
             }
         }
 
@@ -274,4 +282,10 @@ contract BUBDAO {
         return s_balance[_address];
     }
 
+    function getTokenHolder(address _holder) public view returns (bool) {
+        if (s_balance[_holder] > 0) {
+            return true;
+        }
+        return false;
+    }
 }

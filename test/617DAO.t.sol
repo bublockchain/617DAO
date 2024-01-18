@@ -8,16 +8,40 @@ import {Deploy617DAO} from "../script/Deploy617DAO.s.sol";
 contract DAOTest is Test {
     BUBDAO public dao;
     address[] members;
+    bytes4 expectedOnlyOwner = bytes4(keccak256("Unauthorized_Only_Owner()"));
+    bytes4 expectedOnlyPresident = bytes4(keccak256("Unauthorized_Only_President()"));
+    bytes4 expectedOnlyVP = bytes4(keccak256("Unauthorized_Only_VP()"));
+    bytes4 expectedOnlyMember = bytes4(keccak256("Unauthorized_Only_Member()"));
+    bytes4 expectedAlreadyMember = bytes4(keccak256("AlreadyMember()"));
+    bytes4 expectedMeetingNotOpen = bytes4(keccak256("MeetingNotOpen()"));
+    bytes4 expectedMeetingIsAlreadyOpen = bytes4(keccak256("MeetingIsAlreadyOpen()"));
+    bytes4 expectedAlreadyCheckedIn = bytes4(keccak256("AlreadyCheckedIn()"));
+    bytes4 expectedAlreadyVoted = bytes4(keccak256("AlreadyVoted()"));
 
     function setUp() public {
-        Deploy617DAO deploy = new Deploy617DAO();
-        dao = deploy.run(address(this), members);
+        dao = new BUBDAO(address(2), members);
     }
+
+    //addMember tests
 
     function test_addMember() public {
         dao.addMember(address(0));
         assertEq(dao.s_balance(address(0)), 1);
     }
+
+    function test_addMemberWhoIsAlreadyMember() public {
+        dao.addMember(address(0));
+        vm.expectRevert(expectedAlreadyMember);
+        dao.addMember(address(0));
+    }
+
+    function test_onlyOwner() public {
+        vm.prank(address(0));
+        vm.expectRevert(expectedOnlyOwner);
+        dao.addMember(address(0));
+    }
+
+    //addVP tests
 
     function test_addVP() public {
         dao.addMember(address(0));
@@ -25,8 +49,9 @@ contract DAOTest is Test {
         assertEq(dao.s_balance(address(0)), 2);
     }
 
+    
+
     function test_addProposals() public {
-        vm.prank(address(this));
         dao.addMember(address(0));
         vm.prank(address(0));
         dao.addProposal("test");
@@ -70,19 +95,11 @@ contract DAOTest is Test {
     }
 
     function test_newMeeting() public {
+        vm.prank(address(2));
         dao.newMeeting("test");
         string memory topic = dao.getCurrentMeetingTopic();
         assertEq(topic, "test");
     }
-
-    // function test_airdrop() public {
-    //    address[] memory addrs = new address[](2);
-    //    addrs[0] = address(0);
-    //    addrs[1] = address(1);
-    //    dao.airdrop(addrs);
-    //    assertEq(dao.s_balance(address(0)), 1);
-    //    assertEq(dao.s_balance(address(1)), 1);
-    // }
 
     function test_vpAirdrop() public {
         address[] memory addrs = new address[](2);
@@ -109,32 +126,37 @@ contract DAOTest is Test {
     }
 
     function test_newPresident() public {
+        vm.prank(address(2));
         dao.newPresident(address(0));
         assertEq(dao.s_balance(address(0)), 3);
-        assertEq(dao.s_balance(address(this)), 0);
+        assertEq(dao.s_balance(address(2)), 0);
     }
 
     function test_unauthorizedAccess_addMember() public {
-        vm.expectRevert(bytes("UnauthorizedOwner"));
         vm.prank(address(3));
+        bytes4 expectedError = bytes4(keccak256("UnauthorizedOwner()"));
+        vm.expectRevert(expectedError);
         dao.addMember(address(0));
     }
 
     function test_unauthorizedAccess_newMeeting() public {
-        vm.expectRevert(bytes("UnauthorizedPresident"));
-        vm.prank(address(2));
+        vm.prank(address(0));
+        bytes4 expectedError = bytes4(keccak256("UnauthorizedPresident()"));
+        vm.expectRevert(expectedError);
         dao.newMeeting("Unauthorized Test");
     }
 
     function test_unauthorizedAccess_closeMeeting() public {
-        vm.expectRevert(bytes("UnauthorizedPresident"));
         vm.prank(address(1));
+        bytes4 expectedError = bytes4(keccak256("UnauthorizedPresident()"));
+        vm.expectRevert(expectedError);
         dao.closeMeeting();
     }
 
     function test_unauthorizedAccess_removeMember() public {
         dao.addMember(address(0));
-        vm.expectRevert(bytes("UnauthorizedOwner"));
+        bytes4 expectedError = bytes4(keccak256("UnauthorizedOwner()"));
+        vm.expectRevert(expectedError);
         vm.prank(address(0));
         dao.removeMember(address(0));
     }
@@ -142,18 +164,51 @@ contract DAOTest is Test {
     function test_unauthorizedAccess_removeVP() public {
         dao.addMember(address(0));
         dao.addVP(address(0));
-        vm.expectRevert(bytes("UnauthorizedOwner"));
-        vm.prank(address(0));
+        bytes4 expectedError = bytes4(keccak256("UnauthorizedOwner()"));
+        vm.expectRevert(expectedError);
+        vm.prank(address(1));
         dao.removeVP(address(0));
     }
 
-    function test_notYetMembers() public {
+    function test_checkInToClosedMeeting() public {
+        vm.prank(address(1));
+        bytes4 expectedError = bytes4(keccak256("MeetingNotOpen()"));
+        vm.expectRevert(expectedError);
+        dao.checkIn();
+    }
+
+    function test_memberAlreadyCheckedIn() public {
+        vm.prank(address(2));
+        dao.newMeeting("Test");
+        vm.prank(address(1));
+        dao.checkIn();
+        vm.prank(address(1));
+        bytes4 expectedError = bytes4(keccak256("AlreadyCheckedIn()"));
+        vm.expectRevert(expectedError);
+        dao.checkIn();
+    }
+
+    function test_addMemberAfterCheckIns() public {
         for (uint8 i = 0; i < 3; i++) {
+            vm.prank(address(2));
             dao.newMeeting("Test Meeting");
             vm.prank(address(1));
             dao.checkIn();
+            vm.prank(address(2));
             dao.closeMeeting();
         }
         assertEq(dao.s_balance(address(1)), 1); // Now a member after 3 meetings
+    }
+
+    function test_didntAddMemberAfterNotEnoughCheckIns() public {
+        for (uint8 i = 0; i < 2; i++) {
+            vm.prank(address(2));
+            dao.newMeeting("Test Meeting");
+            vm.prank(address(1));
+            dao.checkIn();
+            vm.prank(address(2));
+            dao.closeMeeting();
+        }
+        assertEq(dao.s_balance(address(1)), 0);
     }
 }
