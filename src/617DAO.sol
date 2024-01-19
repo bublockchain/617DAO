@@ -30,6 +30,7 @@ contract BUBDAO {
     error MeetingIsAlreadyOpen();
     error AlreadyCheckedIn();
     error AlreadyVoted();
+    error ElectionIsNotOpen();
 
     // Structs
     struct Proposal {
@@ -46,7 +47,6 @@ contract BUBDAO {
     }
 
     struct Impeachment {
-        address newPresident;
         uint256 startTime;
         uint8 votes;
     }
@@ -54,17 +54,29 @@ contract BUBDAO {
     // State variables
     mapping(address => uint) private s_notYetMembers;
     mapping(uint => mapping(address => bool)) private s_votes;
-    mapping(address => uint) private s_openImpeachments;
     Proposal[] public s_proposals;
     Meeting private s_currentMeeting;
     Meeting[] private s_pastMeetings;
-    Impeachment[] private s_impeachments;
+    Impeachment currentImpeachment = Impeachment(0, 0);
+    mapping(uint256 => mapping(address => bool)) impeachmentVotes;
+    uint256 impeachmentVersion = 0;
+    uint256 impeachmentDuration = 7 days;
+    bool electionOpen = false;
+    address[] candidates;
+    mapping(uint256 => mapping(address => bool)) isCandidate;
+    uint256 presidentialElectionVersion = 0;
+    mapping(uint256 => mapping(address => uint256)) presidentialElectionVotes;
+    uint256 electionOpenDate = 0;
+    uint256 electionPeriod = 7 days;
 
     // Events
     event NewProposal(string proposal);
     event ProposalPassed(string proposal);
     event ProposalFailed(string proposal);
-
+    event newImpeachmentAttempt(uint256 startTime, address startedBy);
+    event ImpeachmentFailed(uint256 numberOfImpeachmentAttempts);
+    event ImpeachmentSuccessful_ElectionOpen();
+    event NewPresident(address newPresident, uint256 votes);
     // Modifiers
     modifier onlyOwner() {
         if (msg.sender != s_owner) {
@@ -125,10 +137,17 @@ contract BUBDAO {
         s_balance[_president] = PRESIDENT_TOKENS;
         s_balance[s_president] = 0;
         s_president = _president;
+        emit NewPresident(_president, 0);
+    }
+
+    function newPresidentInternal(address _president) internal {
+        s_balance[_president] = PRESIDENT_TOKENS;
+        s_balance[s_president] = 0;
+        s_president = _president;
     }
 
     //@notice airdrops governance tokens to a list of new members
-    function airdrop(address[] memory list) private onlyOwner {
+    function airdrop(address[] memory list) public onlyOwner {
         for (uint i = 0; i < list.length; ++i) {
             s_balance[list[i]] = 1;
         }
@@ -154,33 +173,73 @@ contract BUBDAO {
 
     // Democracy functions
 
-
     //Need to rework this segment
-    function impeach(address _newPresident) public onlyMember {
-        if (
-            s_impeachments[s_openImpeachments[_newPresident]].startTime + 7 days < block.timestamp
-        ) {
-            delete s_openImpeachments[_newPresident];
-        } else if (s_openImpeachments[_newPresident] != 0) {
-            s_impeachments[s_openImpeachments[_newPresident]].votes += s_balance[msg.sender];
-        } else {
-            s_openImpeachments[_newPresident] = s_impeachments.length;
-            s_impeachments.push(
-                Impeachment(
-                    _newPresident,
-                    block.timestamp,
-                    s_balance[msg.sender]
-                )
-            );
+    function impeach() public onlyMember {
+        //Start clause
+        if (currentImpeachment.startTime == 0) {
+            currentImpeachment = Impeachment(block.number, 1);
+            ++impeachmentVersion;
+            impeachmentVotes[impeachmentVersion][msg.sender] = true;
+            emit newImpeachmentAttempt(block.number, msg.sender);
         }
 
-        if (
-            s_impeachments[s_openImpeachments[_newPresident]].votes >
-            ((s_totalTokens / 4) * 3)
-        ) {
-            newPresident(_newPresident);
-            delete s_openImpeachments[_newPresident];
+        //end clauses
+        if (currentImpeachment.startTime + impeachmentDuration < block.number) {
+            currentImpeachment = Impeachment(0, 0);
+            emit ImpeachmentFailed(impeachmentVersion);
+            return;
         }
+
+        //vote
+        ++currentImpeachment.votes;
+
+        if (currentImpeachment.votes > ((s_totalTokens * 3) / 4)) {
+            openElection();
+            currentImpeachment = Impeachment(0, 0);
+            emit ImpeachmentSuccessful_ElectionOpen();
+            return;
+        }
+    }
+
+    function openElection() internal {
+        electionOpen = true;
+        delete candidates;
+        ++presidentialElectionVersion;
+    }
+
+    function voteInElection(address _newPresident) public onlyMember {
+        if (!electionOpen) {
+            revert ElectionIsNotOpen();
+        }
+
+        if (electionOpenDate + electionPeriod < block.number) {
+            closeElection();
+        }
+
+        ++presidentialElectionVotes[presidentialElectionVersion][_newPresident];
+
+        //Add candidate to array if not in
+        if (!(isCandidate[presidentialElectionVersion][_newPresident])) {
+            candidates.push(_newPresident);
+        }
+
+        //see if end of election
+    }
+
+    function closeElection() public {
+        electionOpen = false;
+        address mostVotes = address(0);
+        for (uint i; i < candidates.length; ++i) {
+            if (
+                presidentialElectionVotes[presidentialElectionVersion][candidates[i]] >
+                presidentialElectionVotes[presidentialElectionVersion][mostVotes]
+            ) {
+                mostVotes = candidates[i];
+            }
+        }
+
+        newPresidentInternal(mostVotes);
+        emit NewPresident(mostVotes, presidentialElectionVotes[presidentialElectionVersion][mostVotes]);
     }
 
     // Proposals and voting
@@ -241,7 +300,8 @@ contract BUBDAO {
                 }
             }
 
-            s_currentMeeting.attendees[s_currentMeeting.attendees.length] = msg.sender;
+            s_currentMeeting.attendees[s_currentMeeting.attendees.length] = msg
+                .sender;
         }
 
         //If they have checked in
