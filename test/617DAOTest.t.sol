@@ -3,18 +3,21 @@ pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {BUBDAO} from "../src/617DAO.sol";
-import {Deploy617DAO} from "../script/Deploy617DAO.s.sol";
 
 contract DAOTest is Test {
     BUBDAO public dao;
     address[] members;
+
+    //ExpectRevert errors
     bytes4 expectedOnlyOwner = bytes4(keccak256("Unauthorized_Only_Owner()"));
-    bytes4 expectedOnlyPresident = bytes4(keccak256("Unauthorized_Only_President()"));
+    bytes4 expectedOnlyPresident =
+        bytes4(keccak256("Unauthorized_Only_President()"));
     bytes4 expectedOnlyVP = bytes4(keccak256("Unauthorized_Only_VP()"));
     bytes4 expectedOnlyMember = bytes4(keccak256("Unauthorized_Only_Member()"));
     bytes4 expectedAlreadyMember = bytes4(keccak256("AlreadyMember()"));
     bytes4 expectedMeetingNotOpen = bytes4(keccak256("MeetingNotOpen()"));
-    bytes4 expectedMeetingIsAlreadyOpen = bytes4(keccak256("MeetingIsAlreadyOpen()"));
+    bytes4 expectedMeetingIsAlreadyOpen =
+        bytes4(keccak256("MeetingIsAlreadyOpen()"));
     bytes4 expectedAlreadyCheckedIn = bytes4(keccak256("AlreadyCheckedIn()"));
     bytes4 expectedAlreadyVoted = bytes4(keccak256("AlreadyVoted()"));
 
@@ -68,7 +71,6 @@ contract DAOTest is Test {
         vm.expectRevert(expectedOnlyPresident);
         dao.newPresident(address(1));
     }
-    
 
     function test_addProposals() public {
         dao.addMember(address(0));
@@ -143,7 +145,6 @@ contract DAOTest is Test {
         dao.removeVP(address(0));
         assertEq(dao.s_balance(address(0)), 0);
     }
-
 
     function test_unauthorizedAccess_addMember() public {
         vm.prank(address(3));
