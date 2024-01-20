@@ -294,15 +294,14 @@ contract BUBDAO {
 
         // Parse through current meeting attendees to see if address has already checked in
         if (s_currentMeeting.attendees.length > 0) {
-            for (uint i = 0; i < s_currentMeeting.attendees.length; i++) {
+            for (uint i; i < s_currentMeeting.attendees.length; i++) {
                 if (s_currentMeeting.attendees[i] == msg.sender) {
                     revert AlreadyCheckedIn();
                 }
             }
-
-            s_currentMeeting.attendees[s_currentMeeting.attendees.length] = msg
-                .sender;
         }
+
+        s_currentMeeting.attendees.push(msg.sender);
 
         //If they have checked in
         if (s_balance[msg.sender] < 1) {

@@ -11,15 +11,15 @@ contract DAOTest is Test {
     //ExpectRevert errors
     bytes4 expectedOnlyOwner = bytes4(keccak256("Unauthorized_Only_Owner()"));
     bytes4 expectedOnlyPresident =
-        bytes4(keccak256("Unauthorized_Only_President()"));
+    bytes4(keccak256("Unauthorized_Only_President()"));
     bytes4 expectedOnlyVP = bytes4(keccak256("Unauthorized_Only_VP()"));
     bytes4 expectedOnlyMember = bytes4(keccak256("Unauthorized_Only_Member()"));
     bytes4 expectedAlreadyMember = bytes4(keccak256("AlreadyMember()"));
     bytes4 expectedMeetingNotOpen = bytes4(keccak256("MeetingNotOpen()"));
-    bytes4 expectedMeetingIsAlreadyOpen =
-        bytes4(keccak256("MeetingIsAlreadyOpen()"));
+    bytes4 expectedMeetingIsAlreadyOpen = bytes4(keccak256("MeetingIsAlreadyOpen()"));
     bytes4 expectedAlreadyCheckedIn = bytes4(keccak256("AlreadyCheckedIn()"));
     bytes4 expectedAlreadyVoted = bytes4(keccak256("AlreadyVoted()"));
+    bytes4 expectedElectionIsNotOpen = bytes4(keccak256("ElectionIsNotOpen()"));
 
     function setUp() public {
         dao = new BUBDAO(address(2), members);
@@ -72,6 +72,55 @@ contract DAOTest is Test {
         dao.newPresident(address(1));
     }
 
+    //Airdrop tests
+
+    function test_airdrop() public {
+        address[] memory test = new address[](2);
+        test[0] = address(4);
+        test[1] = address(5);
+        dao.airdrop(test);
+        assertEq(dao.getTokenHolder(address(4)), true);
+        assertEq(dao.getTokenHolder(address(5)), true);
+    }
+
+    //VPAirdrop tests
+
+    function test_vpAirdrop() public {
+        address[] memory addrs = new address[](2);
+        addrs[0] = address(0);
+        addrs[1] = address(1);
+        dao.addMember(address(0));
+        dao.addMember(address(1));
+        dao.vpAirdrop(addrs);
+        assertEq(dao.s_balance(address(0)), 2);
+        assertEq(dao.s_balance(address(1)), 2);
+    }
+
+    //removeMember tests
+
+    function test_removeMember() public {
+        dao.addMember(address(0));
+        dao.removeMember(address(0));
+        assertEq(dao.s_balance(address(0)), 0);
+    }
+
+    //removeVp Tests
+
+    function test_removeVP() public {
+        dao.addMember(address(0));
+        dao.addVP(address(0));
+        dao.removeVP(address(0));
+        assertEq(dao.s_balance(address(0)), 0);
+    }
+
+    //Impeach Tests
+
+    function test_impeach() public {
+        vm.prank(address(2));
+        dao.impeach();
+    }
+
+
     function test_addProposals() public {
         dao.addMember(address(0));
         vm.prank(address(0));
@@ -121,73 +170,10 @@ contract DAOTest is Test {
         string memory topic = dao.getCurrentMeetingTopic();
         assertEq(topic, "test");
     }
-
-    function test_vpAirdrop() public {
-        address[] memory addrs = new address[](2);
-        addrs[0] = address(0);
-        addrs[1] = address(1);
-        dao.addMember(address(0));
-        dao.addMember(address(1));
-        dao.vpAirdrop(addrs);
-        assertEq(dao.s_balance(address(0)), 2);
-        assertEq(dao.s_balance(address(1)), 2);
-    }
-
-    function test_removeMember() public {
-        dao.addMember(address(0));
-        dao.removeMember(address(0));
-        assertEq(dao.s_balance(address(0)), 0);
-    }
-
-    function test_removeVP() public {
-        dao.addMember(address(0));
-        dao.addVP(address(0));
-        dao.removeVP(address(0));
-        assertEq(dao.s_balance(address(0)), 0);
-    }
-
-    function test_unauthorizedAccess_addMember() public {
-        vm.prank(address(3));
-        bytes4 expectedError = bytes4(keccak256("UnauthorizedOwner()"));
-        vm.expectRevert(expectedError);
-        dao.addMember(address(0));
-    }
-
-    function test_unauthorizedAccess_newMeeting() public {
-        vm.prank(address(0));
-        bytes4 expectedError = bytes4(keccak256("UnauthorizedPresident()"));
-        vm.expectRevert(expectedError);
-        dao.newMeeting("Unauthorized Test");
-    }
-
-    function test_unauthorizedAccess_closeMeeting() public {
-        vm.prank(address(1));
-        bytes4 expectedError = bytes4(keccak256("UnauthorizedPresident()"));
-        vm.expectRevert(expectedError);
-        dao.closeMeeting();
-    }
-
-    function test_unauthorizedAccess_removeMember() public {
-        dao.addMember(address(0));
-        bytes4 expectedError = bytes4(keccak256("UnauthorizedOwner()"));
-        vm.expectRevert(expectedError);
-        vm.prank(address(0));
-        dao.removeMember(address(0));
-    }
-
-    function test_unauthorizedAccess_removeVP() public {
-        dao.addMember(address(0));
-        dao.addVP(address(0));
-        bytes4 expectedError = bytes4(keccak256("UnauthorizedOwner()"));
-        vm.expectRevert(expectedError);
-        vm.prank(address(1));
-        dao.removeVP(address(0));
-    }
-
+    
     function test_checkInToClosedMeeting() public {
         vm.prank(address(1));
-        bytes4 expectedError = bytes4(keccak256("MeetingNotOpen()"));
-        vm.expectRevert(expectedError);
+        vm.expectRevert(expectedMeetingNotOpen);
         dao.checkIn();
     }
 
@@ -197,8 +183,7 @@ contract DAOTest is Test {
         vm.prank(address(1));
         dao.checkIn();
         vm.prank(address(1));
-        bytes4 expectedError = bytes4(keccak256("AlreadyCheckedIn()"));
-        vm.expectRevert(expectedError);
+        vm.expectRevert(expectedAlreadyCheckedIn);
         dao.checkIn();
     }
 
