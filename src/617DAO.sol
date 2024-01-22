@@ -5,6 +5,8 @@ pragma solidity ^0.8.20;
 //@author Wes Jorgensen, @Wezabis on twtr
 //@notice This contract is a simple DAO for the Boston University Blockchain Club
 
+//Add an interface for the DAO
+
 contract BUBDAO {
     // Set to BUB Wallet Address
     address public s_owner;
@@ -61,7 +63,7 @@ contract BUBDAO {
     mapping(uint256 => mapping(address => bool)) impeachmentVotes;
     uint256 impeachmentVersion = 0;
     uint256 impeachmentDuration = 7 days;
-    bool electionOpen = false;
+    bool public isElectionOpen = false;
     address[] candidates;
     mapping(uint256 => mapping(address => bool)) isCandidate;
     uint256 presidentialElectionVersion = 0;
@@ -109,9 +111,7 @@ contract BUBDAO {
     //@notice Constructor sets the owner and president of the DAO
     constructor(address _president, address[] memory _members) {
         s_owner = msg.sender;
-        s_president = _president;
-        s_balance[msg.sender] = PRESIDENT_TOKENS;
-        s_totalTokens += PRESIDENT_TOKENS;
+        newPresidentInternal(_president);
         airdrop(_members);
     }
 
@@ -175,7 +175,10 @@ contract BUBDAO {
 
     //Need to rework this segment
     function impeach() public onlyMember {
-        //Start clause
+        if (impeachmentVotes[impeachmentVersion][msg.sender]) {
+            revert AlreadyVoted();
+        }
+
         if (currentImpeachment.startTime == 0) {
             currentImpeachment = Impeachment(block.number, 1);
             ++impeachmentVersion;
@@ -183,7 +186,7 @@ contract BUBDAO {
             emit newImpeachmentAttempt(block.number, msg.sender);
         }
 
-        //end clauses
+        //end clause
         if (currentImpeachment.startTime + impeachmentDuration < block.number) {
             currentImpeachment = Impeachment(0, 0);
             emit ImpeachmentFailed(impeachmentVersion);
@@ -193,7 +196,7 @@ contract BUBDAO {
         //vote
         ++currentImpeachment.votes;
 
-        if (currentImpeachment.votes > ((s_totalTokens * 3) / 4)) {
+        if (currentImpeachment.votes * 4 >= s_totalTokens * 3) {
             openElection();
             currentImpeachment = Impeachment(0, 0);
             emit ImpeachmentSuccessful_ElectionOpen();
@@ -202,13 +205,13 @@ contract BUBDAO {
     }
 
     function openElection() internal {
-        electionOpen = true;
+        isElectionOpen = true;
         delete candidates;
         ++presidentialElectionVersion;
     }
 
     function voteInElection(address _newPresident) public onlyMember {
-        if (!electionOpen) {
+        if (!isElectionOpen) {
             revert ElectionIsNotOpen();
         }
 
@@ -227,19 +230,26 @@ contract BUBDAO {
     }
 
     function closeElection() public {
-        electionOpen = false;
+        isElectionOpen = false;
         address mostVotes = address(0);
         for (uint i; i < candidates.length; ++i) {
             if (
-                presidentialElectionVotes[presidentialElectionVersion][candidates[i]] >
-                presidentialElectionVotes[presidentialElectionVersion][mostVotes]
+                presidentialElectionVotes[presidentialElectionVersion][
+                    candidates[i]
+                ] >
+                presidentialElectionVotes[presidentialElectionVersion][
+                    mostVotes
+                ]
             ) {
                 mostVotes = candidates[i];
             }
         }
 
         newPresidentInternal(mostVotes);
-        emit NewPresident(mostVotes, presidentialElectionVotes[presidentialElectionVersion][mostVotes]);
+        emit NewPresident(
+            mostVotes,
+            presidentialElectionVotes[presidentialElectionVersion][mostVotes]
+        );
     }
 
     // Proposals and voting
@@ -269,9 +279,9 @@ contract BUBDAO {
         s_votes[_proposal][msg.sender] = true;
 
         // Checks if proposal passed
-        if (s_proposals[_proposal].votesYa > s_totalTokens / 2) {
+        if (s_proposals[_proposal].votesYa * 2 >= s_totalTokens) {
             emit ProposalPassed(s_proposals[_proposal].proposal);
-        } else if (s_proposals[_proposal].votesNay > s_totalTokens / 2) {
+        } else if (s_proposals[_proposal].votesNay * 2 > s_totalTokens) {
             emit ProposalFailed(s_proposals[_proposal].proposal);
         }
     }

@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 import {BUBDAO} from "./617DAO.sol";
 
 contract DAOFaucet {
-    event Deposit(address sender, uint256 amount);
-    event Funding(address sentTo, bytes data);
+    event Deposit(address indexed sender, uint256 amount);
+    event Funding(address indexed sentTo, bytes data);
     event DrainedFunds();
 
     address private s_owner;

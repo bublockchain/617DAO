@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {BUBDAO} from "../src/617DAO.sol";
@@ -10,8 +10,7 @@ contract DAOTest is Test {
 
     //ExpectRevert errors
     bytes4 expectedOnlyOwner = bytes4(keccak256("Unauthorized_Only_Owner()"));
-    bytes4 expectedOnlyPresident =
-    bytes4(keccak256("Unauthorized_Only_President()"));
+    bytes4 expectedOnlyPresident = bytes4(keccak256("Unauthorized_Only_President()"));
     bytes4 expectedOnlyVP = bytes4(keccak256("Unauthorized_Only_VP()"));
     bytes4 expectedOnlyMember = bytes4(keccak256("Unauthorized_Only_Member()"));
     bytes4 expectedAlreadyMember = bytes4(keccak256("AlreadyMember()"));
@@ -116,10 +115,39 @@ contract DAOTest is Test {
     //Impeach Tests
 
     function test_impeach() public {
+        dao.addVP(address(3));
+        dao.addVP(address(4));
+        vm.prank(address(3));
+        dao.impeach();
         vm.prank(address(2));
+        dao.impeach();
+        assertEq(dao.isElectionOpen(), true);
+    }
+
+    function test_impeach_alreadyVoted() public {
+        dao.addVP(address(3));
+        vm.prank(address(3));
+        dao.impeach();
+        vm.prank(address(3));
+        vm.expectRevert(expectedAlreadyVoted);
         dao.impeach();
     }
 
+    //Not enough votes impeach
+    event ImpeachmentFailed(uint256 imepachmentVersion);
+
+    function test_impeach_notEnoughVotes() public {
+        dao.addVP(address(3));
+        vm.prank(address(3));
+        dao.impeach();
+        vm.warp(block.number + 8 days);
+        vm.prank(address(2));
+        vm.expectEmit(false, false, false, false, address(dao));
+        emit ImpeachmentFailed(0);
+        dao.impeach();
+    }
+
+    //Test emits
 
     function test_addProposals() public {
         dao.addMember(address(0));
@@ -145,7 +173,7 @@ contract DAOTest is Test {
         dao.addProposal("test");
         vm.prank(address(0));
         dao.vote(0, true);
-        vm.prank(address(this));
+        vm.prank(address(2));
         dao.vote(0, true);
         (, uint256 votesYa, ) = dao.s_proposals(0);
         assertGt(votesYa, dao.s_totalTokens() / 2);
@@ -157,10 +185,9 @@ contract DAOTest is Test {
         dao.addProposal("test");
         vm.prank(address(0));
         dao.vote(0, false);
-        vm.prank(address(this));
+        vm.prank(address(2));
         dao.vote(0, false);
         (, , uint256 votesNay) = dao.s_proposals(0);
-        console2.log(votesNay);
         assertGt(votesNay, dao.s_totalTokens() / 2);
     }
 
@@ -170,7 +197,7 @@ contract DAOTest is Test {
         string memory topic = dao.getCurrentMeetingTopic();
         assertEq(topic, "test");
     }
-    
+
     function test_checkInToClosedMeeting() public {
         vm.prank(address(1));
         vm.expectRevert(expectedMeetingNotOpen);
