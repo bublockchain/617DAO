@@ -37,7 +37,7 @@ contract BUBDAO {
     // Structs
     struct Proposal {
         string proposal;
-        uint votesYa;
+        uint votesYay;
         uint votesNay;
     }
 
@@ -267,8 +267,8 @@ contract BUBDAO {
 
         // Adds vote
         if (_vote) {
-            s_proposals[_proposal].votesYa =
-                s_proposals[_proposal].votesYa +
+            s_proposals[_proposal].votesYay =
+                s_proposals[_proposal].votesYay +
                 s_balance[msg.sender];
         } else {
             s_proposals[_proposal].votesNay =
@@ -279,7 +279,7 @@ contract BUBDAO {
         s_votes[_proposal][msg.sender] = true;
 
         // Checks if proposal passed
-        if (s_proposals[_proposal].votesYa * 2 >= s_totalTokens) {
+        if (s_proposals[_proposal].votesYay * 2 >= s_totalTokens) {
             emit ProposalPassed(s_proposals[_proposal].proposal);
         } else if (s_proposals[_proposal].votesNay * 2 > s_totalTokens) {
             emit ProposalFailed(s_proposals[_proposal].proposal);
