@@ -140,10 +140,11 @@ contract DAOTest is Test {
         dao.addVP(address(3));
         vm.prank(address(3));
         dao.impeach();
-        vm.warp(block.number + 8 days);
+        console2.log(dao.getCurrentImpeachment());
+        vm.warp(block.timestamp + 8 days);
         vm.prank(address(2));
         vm.expectEmit(false, false, false, false, address(dao));
-        emit ImpeachmentFailed(0);
+        emit ImpeachmentFailed(1);
         dao.impeach();
     }
 

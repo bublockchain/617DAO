@@ -180,21 +180,23 @@ contract BUBDAO {
         }
 
         if (currentImpeachment.startTime == 0) {
-            currentImpeachment = Impeachment(block.number, 1);
+            currentImpeachment = Impeachment(block.number, s_balance[msg.sender]);
             ++impeachmentVersion;
             impeachmentVotes[impeachmentVersion][msg.sender] = true;
             emit newImpeachmentAttempt(block.number, msg.sender);
+            return;
         }
 
         //end clause
-        if (currentImpeachment.startTime + impeachmentDuration < block.number) {
+        if ((currentImpeachment.startTime + impeachmentDuration) < block.timestamp) {
             currentImpeachment = Impeachment(0, 0);
             emit ImpeachmentFailed(impeachmentVersion);
             return;
         }
 
         //vote
-        ++currentImpeachment.votes;
+        currentImpeachment.votes += s_balance[msg.sender];
+        impeachmentVotes[impeachmentVersion][msg.sender] = true;
 
         if (currentImpeachment.votes * 4 >= s_totalTokens * 3) {
             openElection();
@@ -202,6 +204,10 @@ contract BUBDAO {
             emit ImpeachmentSuccessful_ElectionOpen();
             return;
         }
+    }
+
+    function getCurrentImpeachment() external view returns(uint){
+        return currentImpeachment.startTime + impeachmentDuration;
     }
 
     function openElection() internal {
