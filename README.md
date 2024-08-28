@@ -1,66 +1,24 @@
-## Foundry
+# Boston University Blockchain Club DAO
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+**Author:** Wes Jorgensen ([@Wezabis on Twitter](https://twitter.com/Wezabis))
 
-Foundry consists of:
+## 617DAO
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Meet 617DAO, the central governance tool for the BU Blockchain Association. As a decentralized autonomous organization, 617DAO showcases our commitment to open decision-making and club growth. Through this model, every BU Blockchain Association member gets the chance to play a role in determining the club's direction. Our clear proposal system allows members to suggest new ideas, and our voting system ensures that the club's decisions truly represent our members' wishes. This modern approach doesn't just drive the club's ongoing development; it also positions us as a leader in the world of blockchain community activity and fresh thinking.
 
-## Documentation
+**Structure:**
 
-https://book.getfoundry.sh/
+617DAO has two main parts:
 
-## Usage
+**Smart Contract:** 
 
-### Build
+This is a special contract that manages the distribution of membership tokens, keeps track of proposals, and handles the voting on those proposals.
 
-```shell
-$ forge build
-```
 
-### Test
+**Web Interface:**
 
-```shell
-$ forge test
-```
+This is an easy-to-use website that lets members connect their wallets, put forward ideas, and sign in for meetings.
 
-### Format
+**In Practice:**
 
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Here's a glimpse into how 617DAO will enhance club involvement and support our decentralized leadership style. Imagine a typical Wednesday meeting: as members arrive, they scan a QR code displayed on the board, which directs them to the BU Blockchain's site. After connecting their Metamask wallet, they hit the check-in button and prove their attendance. Mid-meeting, our President, Isabelle Ki, proposes New York as the venue for our next hackathon. Members swiftly access the website, view the proposal, and those with membership status cast their votes. Once a majority gives a thumbs up, New York it is!
