@@ -59,7 +59,7 @@ import {DAO} from "./DAO.sol";
 contract Faucet {
     DAO private immutable dao;
     mapping(address => uint256) private s_lastRequest;
-    uint256 private s_fundingAmount = 5e17;
+    uint256 private s_fundingAmount = 1e16;
 
     uint256 constant COOLDOWN_PERIOD = 3 weeks;
 

@@ -13,3 +13,6 @@ docs/
 # Dotenv file
 .env
 lib/*
+
+client/node_modules/*
+client/.next
