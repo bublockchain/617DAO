@@ -57,6 +57,7 @@ pragma solidity ^0.8.20;
 import {Faucet} from "./Faucet.sol";
 
 contract DAO {
+
     struct Meeting {
         uint256 blockStarted;
         string topic;
@@ -419,6 +420,14 @@ contract DAO {
      */
     function getMeetings() external view returns (Meeting[] memory) {
         return s_meetings;
+    }
+
+    /**
+     * @notice Get if most recent meeting is open
+     * @return Bool true if meeting is open
+     */
+    function isMeetingOpen() external view returns (bool) {
+        return s_meetings[s_meetings.length - 1].open;
     }
 
     /**
