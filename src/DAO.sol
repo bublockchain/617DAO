@@ -54,12 +54,13 @@ pragma solidity ^0.8.20;
  */
 //////////////////////////////////////////////////////////////////////////////////
 
-import {Faucet} from "./Faucet.sol";
+import {IFaucet} from "./interfaces/IFaucet.sol";
 
 contract DAO {
 
     struct Meeting {
         uint256 blockStarted;
+        uint256 timestampStarted;
         string topic;
         address[] attendees;
         bool open;
@@ -74,12 +75,19 @@ contract DAO {
         uint256 index;
     }
 
-    Faucet private faucet = Faucet(payable(address(0)));
+    struct Member {
+        address memberAddress;
+        string name;
+    }
+
+    IFaucet private faucet = IFaucet(payable(address(0)));
     mapping(address => bool) private s_isPresident;
     uint256 private s_presidentCount;
     mapping(address => bool) private s_isVP;
     mapping(address => bool) private s_isBoard;
     mapping(address => bool) private s_isMember;
+    Member[] private s_members;
+    mapping(address => uint) private s_memberToIndex;
     uint256 private s_totalNumberOfTokens;
     Meeting[] private s_meetings;
     mapping(address => uint256) private s_numberOfMeetingsAttended;
@@ -153,7 +161,7 @@ contract DAO {
             revert FaucetAlreadySet();
         }
 
-        faucet = Faucet(payable(_faucet));
+        faucet = IFaucet(payable(_faucet));
     }
 
     ///////////////////////////////////////////////////////////////////////// 
@@ -220,7 +228,7 @@ contract DAO {
      * @dev Only callable by a current president
      * @param _newMember Address of the new member
      */
-    function addMember(address _newMember) external onlyPresident {
+    function addMember(address _newMember, string memory _name) external onlyPresident {
         if (s_isMember[_newMember]) {
             revert AlreadyMember();
         }
@@ -228,6 +236,8 @@ contract DAO {
         distributeInitalFunds(_newMember);
         s_isMember[_newMember] = true;
         s_totalNumberOfTokens += MEMBERS_TOKENS;
+        s_members.push(Member(_newMember, _name));
+        s_memberToIndex[_newMember] = s_members.length - 1;
     }
 
     /**
@@ -257,10 +267,11 @@ contract DAO {
      * @param _newMembers Array of new member addresses
      */
     function addMultipleMembers(
-        address[] calldata _newMembers
+        Member[] calldata _newMembers
     ) external onlyPresident {
         for (uint256 i = 0; i < _newMembers.length; i++) {
-            address newMember = _newMembers[i];
+            address newMember = _newMembers[i].memberAddress;
+            string memory newName = _newMembers[i].name;
 
             if (s_isMember[newMember]) {
                 revert AlreadyMember();
@@ -269,6 +280,8 @@ contract DAO {
             distributeInitalFunds(newMember);
             s_isMember[newMember] = true;
             s_totalNumberOfTokens += MEMBERS_TOKENS;
+            s_members.push(Member(newMember, newName));
+            s_memberToIndex[newMember] = s_members.length - 1;
         }
     }
 
@@ -340,6 +353,9 @@ contract DAO {
 
         s_isMember[_member] = false;
         s_totalNumberOfTokens -= MEMBERS_TOKENS;
+
+        s_members[s_memberToIndex[_member]] = s_members[s_members.length - 1];
+        s_members.pop();
     }
 
     /**
@@ -367,6 +383,14 @@ contract DAO {
         return s_isPresident[_president];
     }
 
+    /**
+     * @notice Get list of member names and addresses for easier frontend managament
+     * @return Array of Member structs
+     */
+    function membersList() external view returns (Member[] memory) {
+        return s_members;
+    }
+
 
     //////////////////////////////////////////////////////////////////////////////////
     /**
@@ -382,7 +406,7 @@ contract DAO {
      */
     function newMeeting(string calldata _topic) external onlyPresident {
         address[] memory newAttendees;
-        s_meetings.push(Meeting(block.number, _topic, newAttendees, true));
+        s_meetings.push(Meeting(block.number, block.timestamp, _topic, newAttendees, true));
     }
 
     /**
@@ -428,6 +452,22 @@ contract DAO {
      */
     function isMeetingOpen() external view returns (bool) {
         return s_meetings[s_meetings.length - 1].open;
+    }
+
+    /**
+     * @notice Check if address has checked into meeting
+     * @param _member Address to check if it's checked in to meeting
+     * @return bool is member check in
+     */
+    function isCheckedIn(address _member) external view returns (bool) {
+        Meeting storage temp = s_meetings[s_meetings.length - 1];
+
+        for(uint x; x < temp.attendees.length; x++){
+            if(temp.attendees[x] == _member){
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

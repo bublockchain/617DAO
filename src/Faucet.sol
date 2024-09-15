@@ -54,10 +54,10 @@ pragma solidity ^0.8.20;
  */
 //////////////////////////////////////////////////////////////////////////////////
 
-import {DAO} from "./DAO.sol";
+import {IDAO} from "./interfaces/IDAO.sol";
 
 contract Faucet {
-    DAO private immutable dao;
+    IDAO private immutable dao;
     mapping(address => uint256) private s_lastRequest;
     uint256 private s_fundingAmount = 1e16;
 
@@ -85,7 +85,7 @@ contract Faucet {
     }
 
     constructor(address _dao){
-        dao = DAO(_dao);
+        dao = IDAO(_dao);
     }
 
     receive() external payable {}
