@@ -68,6 +68,7 @@ contract DAO {
 
     struct Proposal {
         string proposal;
+        uint256 timeCreated;
         uint256 startBlock;
         uint256 endBlock;
         uint256 votesFor;
@@ -492,7 +493,7 @@ contract DAO {
      * @param _proposal The text of the proposal
      */
     function newProposal(string calldata _proposal) external onlyMember {
-        s_proposals.push(Proposal(_proposal, block.number, block.number+PROPOSAL_LENGTH, 0, false, s_proposals.length));
+        s_proposals.push(Proposal(_proposal, block.timestamp, block.number, block.number+PROPOSAL_LENGTH, 0, false, s_proposals.length));
         emit NewProposal(_proposal, s_proposals.length - 1);
     }
 

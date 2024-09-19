@@ -4,6 +4,13 @@
 source .env
 echo "Deploying contracts..."
 
+# Check for ETHERSCAN_API_KEY
+if [ -z "$ETHERSCAN_API_KEY" ]; then
+    echo "ETHERSCAN_API_KEY not found in environment."
+    read -p "Please enter your Etherscan API key: " ETHERSCAN_API_KEY
+    export ETHERSCAN_API_KEY
+fi
+
 # Fetch chain ID from RPC URL
 CHAIN_ID=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' $RPC_URL | jq -r '.result')
 CHAIN_ID_DEC=$((16#${CHAIN_ID#0x}))
