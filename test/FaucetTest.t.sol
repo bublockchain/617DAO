@@ -10,6 +10,7 @@ contract FaucetTest is Test {
     Faucet faucet;
     address tester1 = address(1);
     uint256 faucetBalance = 10e18;
+    uint dealAmount = 1e18;
 
     fallback() payable external {}
 
@@ -51,7 +52,7 @@ contract FaucetTest is Test {
 
     function testWithdrawFunds_works() public {
         dao.addPresident(tester1);
-        assertEq(tester1.balance, 5e17);
+        assertEq(tester1.balance, dealAmount);
 
         vm.prank(tester1);
         faucet.withdrawFunds();

@@ -37,10 +37,12 @@ interface IDAO {
     error NotBoard();
     error AddressCantBeZero();
     error MustHaveOnePresident();
+    error MeetingAlreadyOpen();
     error MeetingNotOpen();
     error ProposalEnded();
     error ProposalAlreadyPassed();
     error AlreadyVoted();
+    error NamesMustEqualAddresses();
 
     /**
      * @notice Set the address of the faucet becuase the DAO must be deployed first
@@ -90,7 +92,7 @@ interface IDAO {
      * @dev Only callable by a current president
      * @param _newMembers Array of new member addresses
      */
-    function addMultipleMembers(address[] calldata _newMembers) external;
+    function addMultipleMembers(address[] calldata _newMembers, string[] calldata _newNames) external;
 
     /**
      * @notice Remove president

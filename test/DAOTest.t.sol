@@ -9,7 +9,9 @@ contract DAOTest is Test {
     DAO dao;
     Faucet faucet;
     address tester1 = address(1);
-    address[] testers = [address(1), address(2), address(3)];
+    address[] testerAddresses = [address(0), address(1), address(2)];
+    string[] testerNames = ["test1", "test2", "test3"];
+    uint dealAmount = 1e18;
 
     function setUp() public {
         dao = new DAO();
@@ -30,7 +32,7 @@ contract DAOTest is Test {
     function testAddPresident_works() public {
         dao.addPresident(tester1);
 
-        assertEq(tester1.balance, 5e17);
+        assertEq(tester1.balance, dealAmount);
         assertEq(dao.isPresident(tester1), true);
     }
 
@@ -47,7 +49,7 @@ contract DAOTest is Test {
     function testAddVP_works() public {
         dao.addVP(tester1);
 
-        assertEq(tester1.balance, 5e17);
+        assertEq(tester1.balance, dealAmount);
         assertEq(dao.isMember(tester1), true);
     }
 
@@ -60,7 +62,7 @@ contract DAOTest is Test {
 
     function testAddBoard_works() public {
         dao.addBoard(tester1);
-        assertEq(tester1.balance, 5e17);
+        assertEq(tester1.balance, dealAmount);
         assertEq(dao.isMember(tester1), true);
     }
 
@@ -72,8 +74,8 @@ contract DAOTest is Test {
     }
 
     function testAddMember_works() public {
-        dao.addMember(tester1);
-        assertEq(tester1.balance, 5e17);
+        dao.addMember(tester1, "name");
+        assertEq(tester1.balance, dealAmount);
         assertEq(dao.isMember(tester1), true);
     }
 
@@ -81,27 +83,27 @@ contract DAOTest is Test {
         testAddMember_works();
 
         vm.expectRevert(DAO.AlreadyMember.selector);
-        dao.addMember(tester1);
+        dao.addMember(tester1, "name");
     }
 
     function testAddMultipleBoard_works() public {
-        dao.addMultipleBoard(testers);
-        assertEq(dao.isMember(testers[0]), true);
-        assertEq(dao.isMember(testers[1]), true);
-        assertEq(dao.isMember(testers[2]), true);
-        assertEq(testers[0].balance, 5e17);
-        assertEq(testers[1].balance, 5e17);
-        assertEq(testers[2].balance, 5e17);
+        dao.addMultipleBoard(testerAddresses);
+        assertEq(dao.isMember(address(0)), true);
+        assertEq(dao.isMember(address(1)), true);
+        assertEq(dao.isMember(address(2)), true);
+        assertEq(testerAddresses[0].balance, dealAmount);
+        assertEq(testerAddresses[1].balance, dealAmount);
+        assertEq(testerAddresses[2].balance, dealAmount);
     }
 
     function testAddMultipleMembers_works() public {
-        dao.addMultipleMembers(testers);
-        assertEq(dao.isMember(testers[0]), true);
-        assertEq(dao.isMember(testers[1]), true);
-        assertEq(dao.isMember(testers[2]), true);
-        assertEq(testers[0].balance, 5e17);
-        assertEq(testers[1].balance, 5e17);
-        assertEq(testers[2].balance, 5e17);
+        dao.addMultipleMembers(testerAddresses, testerNames);
+        assertEq(dao.isMember(address(0)), true);
+        assertEq(dao.isMember(address(1)), true);
+        assertEq(dao.isMember(address(2)), true);
+        assertEq(address(0).balance, dealAmount);
+        assertEq(address(1).balance, dealAmount);
+        assertEq(address(2).balance, dealAmount);
     }
 
     function testRemovePresident_works() public {

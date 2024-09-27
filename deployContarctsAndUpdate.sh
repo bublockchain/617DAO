@@ -16,7 +16,7 @@ CHAIN_ID=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc
 CHAIN_ID_DEC=$((16#${CHAIN_ID#0x}))
 echo "Detected Chain ID: $CHAIN_ID_DEC"
 
-forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast 
+forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
 
 # Check if the deployment was successful
 if [ $? -ne 0 ]; then

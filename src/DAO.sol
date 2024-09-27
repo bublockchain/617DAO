@@ -119,10 +119,12 @@ contract DAO {
     error NotBoard();
     error AddressCantBeZero();
     error MustHaveOnePresident();
+    error MeetingAlreadyOpen();
     error MeetingNotOpen();
     error ProposalEnded();
     error ProposalAlreadyPassed();
     error AlreadyVoted();
+    error NamesMustEqualAddresses();
 
     modifier onlyPresident() {
         if (!s_isPresident[msg.sender]) {
@@ -268,11 +270,16 @@ contract DAO {
      * @param _newMembers Array of new member addresses
      */
     function addMultipleMembers(
-        Member[] calldata _newMembers
+        address[] calldata _newMembers, 
+        string[] calldata _newNames
     ) external onlyPresident {
+        if(_newMembers.length != _newNames.length){
+            revert NamesMustEqualAddresses();
+        }
+
         for (uint256 i = 0; i < _newMembers.length; i++) {
-            address newMember = _newMembers[i].memberAddress;
-            string memory newName = _newMembers[i].name;
+            address newMember = _newMembers[i];
+            string memory newName = _newNames[i];
 
             if (s_isMember[newMember]) {
                 revert AlreadyMember();
@@ -406,6 +413,12 @@ contract DAO {
      * @param _topic The topic of the meeting
      */
     function newMeeting(string calldata _topic) external onlyPresident {
+        if(s_meetings.length > 0){
+            if(s_meetings[s_meetings.length].open == true){
+                revert MeetingAlreadyOpen();
+            }
+        }
+
         address[] memory newAttendees;
         s_meetings.push(Meeting(block.number, block.timestamp, _topic, newAttendees, true));
     }
