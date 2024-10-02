@@ -59,7 +59,7 @@ import {IDAO} from "./interfaces/IDAO.sol";
 contract Faucet {
     IDAO private immutable dao;
     mapping(address => uint256) private s_lastRequest;
-    uint256 private s_fundingAmount = 1e16;
+    uint256 private s_fundingAmount = 5e17;
 
     uint256 constant COOLDOWN_PERIOD = 3 weeks;
 
@@ -98,12 +98,12 @@ contract Faucet {
      * @dev Only callable by members
      */
     function makeFundingRequest() public balanceCheck {
-        if(!dao.isMember(msg.sender)){
-            revert OnlyMember();
-        }
-
         if((s_lastRequest[msg.sender] + COOLDOWN_PERIOD) > block.number){
             revert TooSoonSinceLastRequest();
+        }
+
+        if(!dao.isMember(msg.sender)){
+            revert OnlyMember();
         }
 
         (bool success, bytes memory data) = payable(msg.sender).call{value: s_fundingAmount}("");

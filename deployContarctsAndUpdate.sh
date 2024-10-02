@@ -29,11 +29,6 @@ LATEST_RUN_FILE=$(ls -t broadcast/Deploy.s.sol/$CHAIN_ID_DEC/run-*.json | head -
 DAO_ADDRESS=$(jq -r '.transactions[0].contractAddress' "$LATEST_RUN_FILE")
 FAUCET_ADDRESS=$(jq -r '.transactions[1].contractAddress' "$LATEST_RUN_FILE")
 
-# Verify contracts
-echo "Verifying contracts..."
-forge verify-contract $DAO_ADDRESS DAO --chain-id $CHAIN_ID_DEC 
-forge verify-contract $FAUCET_ADDRESS Faucet --chain-id $CHAIN_ID_DEC 
-
 # Update contractConfig.ts
 echo "Updating contractConfig.ts..."
 cat > client/src/contractConfig.ts << EOL
