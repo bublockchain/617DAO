@@ -10,7 +10,7 @@ contract FaucetTest is Test {
     Faucet faucet;
     address tester1 = address(1);
     uint256 faucetBalance = 10e18;
-    uint dealAmount = 1e18;
+    uint dealAmount = 5e17;
 
     fallback() payable external {}
 
@@ -34,6 +34,8 @@ contract FaucetTest is Test {
 
     function testMakeFuningRequest_onlyMember() public {
         vm.prank(tester1);
+
+        vm.roll(block.number + 4 weeks);
         vm.expectRevert(Faucet.OnlyMember.selector);
         faucet.makeFundingRequest();
     }

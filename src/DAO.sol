@@ -414,7 +414,7 @@ contract DAO {
      */
     function newMeeting(string calldata _topic) external onlyPresident {
         if(s_meetings.length > 0){
-            if(s_meetings[s_meetings.length].open == true){
+            if(s_meetings[s_meetings.length - 1].open == true){
                 revert MeetingAlreadyOpen();
             }
         }

@@ -11,7 +11,7 @@ contract DAOTest is Test {
     address tester1 = address(1);
     address[] testerAddresses = [address(0), address(1), address(2)];
     string[] testerNames = ["test1", "test2", "test3"];
-    uint dealAmount = 1e18;
+    uint dealAmount = 5e17;
 
     function setUp() public {
         dao = new DAO();
@@ -146,9 +146,20 @@ contract DAOTest is Test {
 
     function testNewMeeting_works() public {
         string memory test1 = "test1";
-        dao.newMeeting("test1");
+        dao.newMeeting(test1);
         DAO.Meeting[] memory temp = dao.getMeetings();
         assertEq(temp[0].topic, test1);
+    }
+
+    function testNewMeeting_multipleMeetings() public {
+        testNewMeeting_works();
+        dao.endMeeting();
+
+        string memory test2 = "test2";
+        dao.newMeeting(test2);
+
+        DAO.Meeting[] memory temp = dao.getMeetings();
+        assertEq(temp[1].topic, test2);
     }
 
     function testCheckIn_works() public {
